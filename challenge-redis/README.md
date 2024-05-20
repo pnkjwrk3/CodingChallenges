@@ -55,9 +55,9 @@ Once your Redis server is up and running, you can interact with it using the Red
   GET key
   ```
 
-<!-- - Delete a key:
+- Delete a key:
   ```
-  DEL key -->
+  DEL key
   ```
 
 This is a simple implementation of a Redis server, so not all Redis commands are supported. For a complete list of available commands, refer to the [Redis documentation](https://redis.io/commands).

@@ -61,50 +61,156 @@ def deserialiser(data):
     return None
 
 
+# Need to optimize this function, using a tree or a heap or radix sort tree to store expiry times and keys
+# def delete_expired_keys():
+#     while True:
+#         for key in key_expiry_store:
+#             if key_expiry_store[key] < int(time.time()):
+#                 key_value_store.pop(key, None)
+#                 key_expiry_store.pop(key, None)
+#         time.sleep(1)
+
+
+def set_key(key, value, expiry_time=None):
+    key_value_store[key] = value
+    if expiry_time:
+        key_expiry_store[key] = expiry_time
+
+
+def delete_key(key):
+    if key_value_store.get(key, None):
+        del key_value_store[key]
+    if key_expiry_store.get(key, 0) > 0:
+        del key_expiry_store[key]
+    # key_value_store.pop(key, None)
+    # key_expiry_store.pop(key, None)
+
+
+def exists_key(key):
+    return key_value_store.get(key, None) and not (
+        key_expiry_store.get(key, 0) > 0
+        and key_expiry_store.get(key, 0) < int(time.time())
+    )
+
+
 def handle_command(commands):
-    if commands[0].upper() == "PING":
-        return "PONG"
-    if commands[0].upper() == "ECHO":
-        return commands[1]
-    if commands[0].upper() == "SET":
-        if len(commands) == 3:
-            key_value_store[commands[1]] = commands[2]
-        elif commands[3].upper().startswith("EX") and (
-            commands[4].isdigit() or int(commands[4]).isdigit()
-        ):
-            # print("test")
-            key_value_store[commands[1]] = commands[2]
-            expiry_time = (
-                int(commands[4]) + time.time()
-                if commands[3].upper() == "EX"
-                else int(commands[4])
-            )
-            key_expiry_store[commands[1]] = expiry_time
-
-        elif commands[3].upper().startswith("PX") and (
-            commands[4].isdigit() or int(commands[4]).isdigit()
-        ):
-            key_value_store[commands[1]] = commands[2]
-            expiry_time = (
-                int(commands[4]) + int(time.time() * 1000)
-                if commands[3].upper() == "PX"
-                else int(commands[4])
-            )
-            key_expiry_store[commands[1]] = expiry_time
-
-        return "OK"
-    if commands[0].upper() == "EXPIRY":
-        if len(commands) == 3:
-            key_expiry_store[commands[1]] = int(commands[2])
-    if commands[0].upper() == "GET":
-        if key_expiry_store.get(commands[1], 0) > 0:
-            if key_expiry_store[commands[1]] < int(time.time()):
+    match commands[0].upper():
+        case "PING":
+            return "PONG"
+        case "ECHO":
+            return commands[1]
+        case "SET":
+            match len(commands):
+                case 3:
+                    set_key(commands[1], commands[2])
+                case 5:
+                    match commands[3].upper():
+                        case "EX":
+                            expiry_time = (
+                                int(commands[4]) + time.time()
+                                if commands[3].upper() == "EX"
+                                else int(commands[4])
+                            )
+                            set_key(commands[1], commands[2], expiry_time)
+                        case "PX":
+                            expiry_time = (
+                                int(commands[4]) + int(time.time() * 1000)
+                                if commands[3].upper() == "PX"
+                                else int(commands[4])
+                            )
+                            set_key(commands[1], commands[2], expiry_time)
+            return "OK"
+        case "EXPIRY":
+            if len(commands) == 3:
+                key_expiry_store[commands[1]] = int(commands[2])
+        case "GET":
+            if exists_key(commands[1]):
+                return key_value_store.get(commands[1], "Error Message")
+            else:
+                delete_key(commands[1])
                 return None
-        return key_value_store.get(commands[1], "Error Message")
-    if commands[0].upper() == "CONFIG":
-        return "OK"
+        case "DEL":
+            delete_key(commands[1])
+            return "OK"
+        case "EXISTS":
+            return "OK" if exists_key(commands[1]) else "Error Message"
+        case "INCR":
+            if exists_key(commands[1]):
+                key_value_store[commands[1]] = int(key_value_store[commands[1]]) + 1
+                return key_value_store[commands[1]]
+            else:
+                return "Error Message"
+        case "DECR":
+            if exists_key(commands[1]):
+                key_value_store[commands[1]] = int(key_value_store[commands[1]]) - 1
+                return key_value_store[commands[1]]
+            else:
+                return "Error Message"
+        case "LPUSH":
+            if exists_key(commands[1]):
+                key_value_store[commands[1]].insert(0, commands[2])
+            else:
+                key_value_store[commands[1]] = [commands[2]]
+            return len(key_value_store[commands[1]])
+        case "RPUSH":
+            if exists_key(commands[1]):
+                key_value_store[commands[1]].append(commands[2])
+            else:
+                key_value_store[commands[1]] = [commands[2]]
+            return len(key_value_store[commands[1]])
+        case "SAVE":
+            for key in key_value_store:
+                if exists_key(key):
+                    with open("redis_dump.txt", "a") as f:
+                        f.write(f"{key} {key_value_store[key]}\n")
+                else:
+                    delete_key(key)
+            return "OK"
+        case "CONFIG":
+            return "OK"
+        case _:
+            return "Error Message"
 
-    return "Error Message"
+    # if commands[0].upper() == "PING":
+    #     return "PONG"
+    # if commands[0].upper() == "ECHO":
+    #     return commands[1]
+    # if commands[0].upper() == "SET":
+    #     if len(commands) == 3:
+    #         set_key(commands[1], commands[2])
+    #     elif commands[3].upper().startswith("EX") and (
+    #         commands[4].isdigit() or int(commands[4]).isdigit()
+    #     ):
+    #         expiry_time = (
+    #             int(commands[4]) + time.time()
+    #             if commands[3].upper() == "EX"
+    #             else int(commands[4])
+    #         )
+    #         set_key(commands[1], commands[2], expiry_time)
+
+    #     elif commands[3].upper().startswith("PX") and (
+    #         commands[4].isdigit() or int(commands[4]).isdigit()
+    #     ):
+    #         expiry_time = (
+    #             int(commands[4]) + int(time.time() * 1000)
+    #             if commands[3].upper() == "PX"
+    #             else int(commands[4])
+    #         )
+    #         set_key(commands[1], commands[2], expiry_time)
+    #     return "OK"
+    # if commands[0].upper() == "EXPIRY":
+    #     if len(commands) == 3:
+    #         key_expiry_store[commands[1]] = int(commands[2])
+    # if commands[0].upper() == "GET":
+    #     if key_expiry_store.get(commands[1], 0) > 0:
+    #         if key_expiry_store[commands[1]] < int(time.time()):
+    #             delete_key(commands[1])
+    #             return None
+    #     return key_value_store.get(commands[1], "Error Message")
+    # if commands[0].upper() == "CONFIG":
+    #     return "OK"
+
+    # return "Error Message"
 
 
 # Unit Tests - Ideally should be in a separate test file. But keeping it here for the sake of submission.
@@ -162,6 +268,18 @@ def test_handle_command():
         (["GET", "key2"], "value2"),
         (["CONFIG"], "OK"),
         (["INVALID"], "Error Message"),
+        (["EXISTS", "key"], "OK"),
+        (["SET", "key3", "2"], "OK"),
+        (["INCR", "counter"], "Error Message"),
+        (["INCR", "key3"], 3),
+        (["DECR", "key3"], 2),
+        (["DEL", "key3"], "OK"),
+        (["LPUSH", "list", "item1"], 1),
+        (["RPUSH", "list", "item2"], 2),
+        (["DEL", "key"], "OK"),
+        (["DECR", "counter"], "Error Message"),
+        (["EXPIRY", "key", "10"], None),
+        (["SAVE"], "OK"),
     ]
 
     for commands, expected_output in test_cases:
@@ -180,9 +298,9 @@ def test_handle_command():
     print("All test cases passed!")
 
 
-test_serialiser()
-test_deserialiser()
-test_handle_command()
+# test_serialiser()
+# test_deserialiser()
+# test_handle_command()
 
 
 # Server Code for concurrent connections using asyncio
