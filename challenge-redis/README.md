@@ -38,8 +38,17 @@ Once your Redis server is up and running, you can interact with it using the Red
 
 - Set a key-value pair:
   ```
-  redis-cli SET key value
+  redis-cli SET key value [EX seconds | PX milliseconds |  EXAT unix-time-seconds | PXAT unix-time-milliseconds]
   ```
+  Example: redis-cli SET name "Alice" EX 10
+
+  The SET command sets the value of a key. If the key already exists, it will be overwritten. The optional EX argument specifies the expiration time in seconds. In this example, the key "name" is set to "Alice" with an expiration time of 10 seconds.
+  
+  The command also supports a set of other options like
+  - EX seconds: Set the specified expire time, in seconds.
+  - PX milliseconds: Set the specified expire time, in milliseconds.
+  - EXAT unix-time-seconds: Set the specified Unix time at which the key will expire, in seconds.
+  - PXAT unix-time-milliseconds: Set the specified Unix time at which the key will expire, in milliseconds.
 
 - Get the value of a key:
   ```

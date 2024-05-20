@@ -2,9 +2,11 @@
 # import socketserver
 # import socket
 import asyncio
+import time
 
 
 key_value_store = {}
+key_expiry_store = {}
 
 
 def make_bulk_string(s):
@@ -65,9 +67,39 @@ def handle_command(commands):
     if commands[0].upper() == "ECHO":
         return commands[1]
     if commands[0].upper() == "SET":
-        key_value_store[commands[1]] = commands[2]
+        if len(commands) == 3:
+            key_value_store[commands[1]] = commands[2]
+        elif commands[3].upper().startswith("EX") and (
+            commands[4].isdigit() or int(commands[4]).isdigit()
+        ):
+            # print("test")
+            key_value_store[commands[1]] = commands[2]
+            expiry_time = (
+                int(commands[4]) + time.time()
+                if commands[3].upper() == "EX"
+                else int(commands[4])
+            )
+            key_expiry_store[commands[1]] = expiry_time
+
+        elif commands[3].upper().startswith("PX") and (
+            commands[4].isdigit() or int(commands[4]).isdigit()
+        ):
+            key_value_store[commands[1]] = commands[2]
+            expiry_time = (
+                int(commands[4]) + int(time.time() * 1000)
+                if commands[3].upper() == "PX"
+                else int(commands[4])
+            )
+            key_expiry_store[commands[1]] = expiry_time
+
         return "OK"
+    if commands[0].upper() == "EXPIRY":
+        if len(commands) == 3:
+            key_expiry_store[commands[1]] = int(commands[2])
     if commands[0].upper() == "GET":
+        if key_expiry_store.get(commands[1], 0) > 0:
+            if key_expiry_store[commands[1]] < int(time.time()):
+                return None
         return key_value_store.get(commands[1], "Error Message")
     if commands[0].upper() == "CONFIG":
         return "OK"
@@ -126,6 +158,8 @@ def test_handle_command():
         (["ECHO", "hello world"], "hello world"),
         (["SET", "key", "value"], "OK"),
         (["GET", "key"], "value"),
+        (["SET", "key2", "value2", "EX", "10"], "OK"),
+        (["GET", "key2"], "value2"),
         (["CONFIG"], "OK"),
         (["INVALID"], "Error Message"),
     ]
@@ -135,6 +169,13 @@ def test_handle_command():
         assert (
             result == expected_output
         ), f"Failed for input: {commands}. Expected: {expected_output}, Got: {result}"
+
+    # Additional test case for checking key retrieval after 10 seconds
+    time.sleep(11)
+    result = handle_command(["GET", "key2"])
+    assert (
+        result == None
+    ), f"Failed for input: ['GET', 'key2']. Expected: None, Got: {result}"
 
     print("All test cases passed!")
 
