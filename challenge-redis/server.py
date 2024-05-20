@@ -50,20 +50,12 @@ def deserialiser(data):
         elif data[0] == "*":
             split_data = data.split("\r\n")[1:]
             commands = []
-            # len1 = 0
             for s in split_data:
-                # print(s)
                 if s:
                     if s[0] == "$":
-                        # len1 = s[1:]
-                        # print(len1)
                         continue
-                    # print(len(s))
-                    # if len(s) == int(len1):
                     commands.append(s)
-                    # len1 = 0
-            return handle_command(commands)
-    # return data.split("\r\n")[1]
+            return commands
     return None
 
 
@@ -83,36 +75,86 @@ def handle_command(commands):
     return "Error Message"
 
 
-input_list_de = [
-    b"$-1\r\n",
-    b"*1\r\n$4\r\nping\r\n",
-    b"*2\r\n$4\r\necho\r\n$11\r\nhello world\r\n",
-    b"*2\r\n$3\r\nget\r\n$3\r\nkey\r\n",
-    b"+OK\r\n",
-    b"-Error message\r\n",
-    b"$0\r\n\r\n",
-    b"+hello world\r\n",
-]
-# # print(serialiser("PING"))
-# for in1 in input_list_de:
-#     print(repr(in1) + "\n deserialised \n")
-#     print(deserialiser(in1))
-#     print("\n")
-#     print(repr(in1) + "\n serialised \n")
-#     print(repr(serialiser(deserialiser(in1))))
+# Unit Tests - Ideally should be in a separate test file. But keeping it here for the sake of submission.
+def test_serialiser():
+    test_cases = [
+        (None, b"$-1\r\n"),
+        ("OK", b"+OK\r\n"),
+        ("Error Message", b"-Error message\r\n"),
+        ("", b"$0\r\n\r\n"),
+        (123, b":123\r\n"),
+        ("hello world", b"+hello world\r\n"),
+        (["ping"], b"*1\r\n$4\r\nping\r\n"),
+        (["echo", "hello world"], b"*2\r\n$4\r\necho\r\n$11\r\nhello world\r\n"),
+        (["get", "key"], b"*2\r\n$3\r\nget\r\n$3\r\nkey\r\n"),
+    ]
+
+    for data, expected_output in test_cases:
+        result = serialiser(data)
+        assert (
+            result == expected_output
+        ), f"Failed for input: {data}. Expected: {expected_output}, Got: {result}"
+
+    print("All test cases passed!")
 
 
-# import asyncio
+def test_deserialiser():
+    test_cases = [
+        (b"$-1\r\n", None),
+        (b"*1\r\n$4\r\nping\r\n", ["ping"]),
+        (b"*2\r\n$4\r\necho\r\n$11\r\nhello world\r\n", ["echo", "hello world"]),
+        (b"*2\r\n$3\r\nget\r\n$3\r\nkey\r\n", ["get", "key"]),
+        (b"+OK\r\n", "OK"),
+        (b"-Error message\r\n", "Error message"),
+        (b"$0\r\n\r\n", ""),
+        (b"+hello world\r\n", "hello world"),
+    ]
+
+    for data, expected_output in test_cases:
+        # print(data, expected_output)
+        result = deserialiser(data)
+        assert (
+            result == expected_output
+        ), f"Failed for input: {data}. Expected: {expected_output}, Got: {result}"
+
+    print("All test cases passed!")
 
 
+def test_handle_command():
+    test_cases = [
+        (["PING"], "PONG"),
+        (["ECHO", "hello world"], "hello world"),
+        (["SET", "key", "value"], "OK"),
+        (["GET", "key"], "value"),
+        (["CONFIG"], "OK"),
+        (["INVALID"], "Error Message"),
+    ]
+
+    for commands, expected_output in test_cases:
+        result = handle_command(commands)
+        assert (
+            result == expected_output
+        ), f"Failed for input: {commands}. Expected: {expected_output}, Got: {result}"
+
+    print("All test cases passed!")
+
+
+test_serialiser()
+test_deserialiser()
+test_handle_command()
+
+
+# Server Code for concurrent connections using asyncio
 async def handle_client(reader, writer):
     request = None
     while request != "quit":
         request = await reader.read(255)
         # print(repr(request))
-        response = serialiser(deserialiser(request))
-        # print(repr(response))
-        # response = str(eval(request)) + "\n"
+        deserialised_request = deserialiser(request)
+        if isinstance(deserialised_request, list):
+            response = serialiser(handle_command(deserialised_request))
+        else:
+            response = serialiser(deserialiser(request))
         writer.write(response)
         try:
             await writer.drain()
