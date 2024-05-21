@@ -5,6 +5,10 @@ Given the challenge to build a Redis server from scratch, I implemented a simple
 
 The Project description can be found [here](https://codingchallenges.fyi/challenges/challenge-redis).
 
+## Future work
+- [ ] Implement radix sort tree for keys expirations, to improve the memory usage.
+- [ ] Rewrite the code in rust, compare performance with python implementation.
+
 ## Prerequisites
 
 Before getting started, make sure you have the following installed:
@@ -97,8 +101,6 @@ Once your Redis server is up and running, you can interact with it using the Red
 
 This is a simple implementation of a Redis server, so not all Redis commands are supported. For a complete list of available commands, refer to the [Redis documentation](https://redis.io/commands).
 
-## Pending work
-- [ ] Porting the code to rust
 
 ## Contributing
 

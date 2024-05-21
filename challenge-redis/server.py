@@ -175,47 +175,6 @@ def handle_command(commands):
         case _:
             return "Error Message"
 
-    # if commands[0].upper() == "PING":
-    #     return "PONG"
-    # if commands[0].upper() == "ECHO":
-    #     return commands[1]
-    # if commands[0].upper() == "SET":
-    #     if len(commands) == 3:
-    #         set_key(commands[1], commands[2])
-    #     elif commands[3].upper().startswith("EX") and (
-    #         commands[4].isdigit() or int(commands[4]).isdigit()
-    #     ):
-    #         expiry_time = (
-    #             int(commands[4]) + time.time()
-    #             if commands[3].upper() == "EX"
-    #             else int(commands[4])
-    #         )
-    #         set_key(commands[1], commands[2], expiry_time)
-
-    #     elif commands[3].upper().startswith("PX") and (
-    #         commands[4].isdigit() or int(commands[4]).isdigit()
-    #     ):
-    #         expiry_time = (
-    #             int(commands[4]) + int(time.time() * 1000)
-    #             if commands[3].upper() == "PX"
-    #             else int(commands[4])
-    #         )
-    #         set_key(commands[1], commands[2], expiry_time)
-    #     return "OK"
-    # if commands[0].upper() == "EXPIRY":
-    #     if len(commands) == 3:
-    #         key_expiry_store[commands[1]] = int(commands[2])
-    # if commands[0].upper() == "GET":
-    #     if key_expiry_store.get(commands[1], 0) > 0:
-    #         if key_expiry_store[commands[1]] < int(time.time()):
-    #             delete_key(commands[1])
-    #             return None
-    #     return key_value_store.get(commands[1], "Error Message")
-    # if commands[0].upper() == "CONFIG":
-    #     return "OK"
-
-    # return "Error Message"
-
 
 # Unit Tests - Ideally should be in a separate test file. But keeping it here for the sake of submission.
 def test_serialiser():
