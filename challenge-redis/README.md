@@ -52,15 +52,53 @@ Once your Redis server is up and running, you can interact with it using the Red
 
 - Get the value of a key:
   ```
-  GET key
+  redis-cli GET key
   ```
 
 - Delete a key:
   ```
-  DEL key
+  redis-cli DEL key
+  ```
+
+- Check if a key exists:
+  ```
+  redis-cli EXISTS key
+  ```
+
+- Increment the value of a key:
+  ```
+  redis-cli INCR key
+  ```
+
+- Decrement the value of a key:
+  ```
+  redis-cli DECR key
+  ```
+
+- Check if a key Exists:
+  ```
+  redis-cli EXISTS key
+  ```
+
+- Insert a value at the head of a list, if the list does not exist, it will be created:
+  ```
+  redis-cli LPUSH key value
+  ```
+
+- Insert the specified value at the tail of the list stored at key:
+  ```
+  redis-cli RPUSH key value
+  ```
+
+- Save the current state of the database to disk:
+  ```
+  redis-cli SAVE
   ```
 
 This is a simple implementation of a Redis server, so not all Redis commands are supported. For a complete list of available commands, refer to the [Redis documentation](https://redis.io/commands).
+
+## Pending work
+- [ ] Porting the code to rust
 
 ## Contributing
 

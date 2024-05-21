@@ -3,6 +3,7 @@
 # import socket
 import asyncio
 import time
+import json
 
 
 key_value_store = {}
@@ -159,12 +160,15 @@ def handle_command(commands):
                 key_value_store[commands[1]] = [commands[2]]
             return len(key_value_store[commands[1]])
         case "SAVE":
-            for key in key_value_store:
-                if exists_key(key):
-                    with open("redis_dump.txt", "a") as f:
-                        f.write(f"{key} {key_value_store[key]}\n")
-                else:
-                    delete_key(key)
+            # for key in key_value_store:
+            #     if exists_key(key):
+            #         continue
+            #     else:
+            #         delete_key(key)
+            with open("redis_dump.txt", "w") as f:
+                f.write(json.dumps(key_value_store) + "\r\n")
+            with open("redis_dump_expiry.txt", "w") as f:
+                f.write(json.dumps(key_expiry_store) + "\r\n")
             return "OK"
         case "CONFIG":
             return "OK"
@@ -301,6 +305,20 @@ def test_handle_command():
 # test_serialiser()
 # test_deserialiser()
 # test_handle_command()
+
+
+def load_dump():
+    try:
+        with open("redis_dump.txt", "r") as f:
+            key_value_store.update(json.loads(f.read()))
+        with open("redis_dump_expiry.txt", "r") as f:
+            key_expiry_store.update(json.loads(f.read()))
+    except FileNotFoundError:
+        pass
+
+
+# load from dump
+load_dump()
 
 
 # Server Code for concurrent connections using asyncio
